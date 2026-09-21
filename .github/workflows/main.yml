@@ -1,6 +1,6 @@
 name: Build ESPHome Firmware
 
-on: [workflow_dispatch] # Кнопка для ручного запуска
+on: [workflow_dispatch]
 
 jobs:
   build:
@@ -20,6 +20,9 @@ jobs:
             framework:
               type: arduino
 
+          # НОВОЕ: Включаем декодер аудиопотоков (MP3/внешний звук)
+          esp32_player:
+
           wifi:
             ssid: "ИМЯ_ВАШЕГО_WIFI"
             password: "ПАРОЛЬ_ОТ_WIFI"
@@ -31,41 +34,37 @@ jobs:
           logger:
           api:
 
+          # Настройка шины I2C
           i2c:
             sda: GPIO10
             scl: GPIO08
 
+          # Подключаем аудиокодек ES8311
           audio_dac:
             - platform: es8311
               address: 0x18
 
+          # Шина цифрового звука I2S
           i2s_audio:
-            - id: i2s_bus
-              i2s_lrclk_pin: GPIO03
-              i2s_bclk_pin: GPIO02
+            id: i2s_bus
+            i2s_lrclk_pin: GPIO03
+            i2s_bclk_pin: GPIO02
 
+          # Физический динамик
           speaker:
             - platform: i2s_audio
               id: xiaozhi_hardware_speaker
               i2s_dout_pin: GPIO01
               dac_type: external
 
-            - platform: mixer
-              id: local_mixer_speaker
-              output_speaker: xiaozhi_hardware_speaker
-              source_speakers:
-                - id: music_channel
-                - id: announcement_channel
-
+          # Настройка медиаплеера без сложного микшера для проверки базового звука
           media_player:
-            - platform: speaker
+            - platform: esp32_player
               id: audio_player
               name: "Xiaozhi Internet Radio"
-              media_pipeline:
-                speaker: music_channel
-              announcement_pipeline:
-                speaker: announcement_channel
+              source: xiaozhi_hardware_speaker
 
+          # Подключение OLED дисплея SSD1306
           display:
             - platform: ssd1306_i2c
               model: "SSD1306 128x64"
@@ -96,4 +95,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: esp32c3-firmware
-          path: .esphome/build/xiaozhi-radio/.pioenvs/xiaozhi-radio/firmware.bin
+          path: .esphome/build/xiaozhi-radio/firmware-factory.bin # ИСПРАВЛЕНО: Сразу забираем готовый объединенный factory-файл
